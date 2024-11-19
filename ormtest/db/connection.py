@@ -1,14 +1,28 @@
 import sqlite3
+import atexit
 from typing import Self
 
 
 class Connection:
-    def __init__(self: Self, database_uri: str) -> None:
-        self.conn = sqlite3.connect(database_uri)
-        self.c = self.conn.cursor()
+    connection: sqlite3.Connection | None = None
+    cursor: sqlite3.Cursor | None = None
 
-    def __del__(self: Self) -> None:
-        self.conn.close()
+    def __new__(cls, database_uri: str | None = None, *args, **kwargs):
+        if not cls.connection and not cls.cursor:
+            if database_uri is None:
+                raise Exception('Database URI is required while first time invoking connection')
+            cls.connection = sqlite3.connect(database_uri)
+            cls.cursor = cls.connection.cursor()
+            atexit.register(lambda: cls.close_db_connection)
+            return super(Connection, cls).__new__(cls, *args, **kwargs)
+        return super(Connection, cls).__new__(cls, *args, **kwargs)
 
-    def execute(self: Self, stmt: str) -> any:
-        return self.c.execute(stmt)
+    @classmethod
+    def close_db_connection(cls) -> None:
+        cls.connection.close()
+
+    @classmethod
+    def execute(cls: Self, stmt: str) -> any:
+        response = cls.cursor.execute(stmt)
+        cls.connection.commit()
+        return response

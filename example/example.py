@@ -11,4 +11,15 @@ class User(Table):
     password: str
 
 # python ormtest/cmd.py create_tables
-# python ormtest/cmd.py drop_db
+
+
+for i in range(10):
+    User.create(
+        id=i,
+        name=f'<NAME{i}>',
+        password=f'<PASSWORD{i}>',
+    )
+
+
+for i in User.select(User.id, User.name).where(User.id.eq(1)).limit(5):
+    print(i)

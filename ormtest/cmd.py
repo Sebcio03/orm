@@ -1,24 +1,30 @@
+import logging
 import sys
 from inspect import isclass
 from pathlib import Path
 from typing import Type
 from importlib import import_module
 
+
 from ormtest.db import Connection
 from ormtest.schema import Table
 from ormtest.schema.generate import generate_create_table_stmt
+
+logger = logging.getLogger("CMD")
+logging.basicConfig(format='%(asctime)s %(levelname)s\t%(message)s', level=logging.DEBUG)
 
 
 def create_tables(connection: Connection, tables: list[Type[Table]]):
     for table in tables:
         stmt = generate_create_table_stmt(table)
-        print(connection.execute(stmt))
-    connection.conn.commit()
+        connection.execute(stmt)
+        logger.info(f'CREATED {table}')
+    connection.connection.commit()
 
 def drop_tables(connection: Connection, tables: list[Type[Table]]):
-    ...
+    raise Exception('NOT IMPLEMENTED')
 
-def discover(path_to_project: Path) -> tuple[Connection, list[Type[Table]]]:
+def discover_project(path_to_project: Path) -> tuple[Connection, list[Type[Table]]]:
     connection = None
     tables = []
 
@@ -39,12 +45,10 @@ def discover(path_to_project: Path) -> tuple[Connection, list[Type[Table]]]:
 help = '''
 Commands to run are: 
 - create_tables <path_to_project>
-- drop_tables <path_to_project>
 '''
 
 commands = {
     'create_tables': create_tables,
-    'drop_tables': drop_tables,
 }
 
 def main(cmd: str, path_to_project: str) -> None:
@@ -53,7 +57,7 @@ def main(cmd: str, path_to_project: str) -> None:
         raise Exception(help)
 
     path_to_project = Path(path_to_project)
-    connection, tables = discover(path_to_project)
+    connection, tables = discover_project(path_to_project)
     command_function(connection, tables)
 
 if __name__ == "__main__":
