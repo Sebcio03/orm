@@ -1,5 +1,5 @@
-import sqlite3
 import atexit
+import sqlite3
 from typing import Self
 
 
@@ -10,7 +10,9 @@ class Connection:
     def __new__(cls, database_uri: str | None = None, *args, **kwargs):
         if not cls.connection and not cls.cursor:
             if database_uri is None:
-                raise Exception('Database URI is required while first time invoking connection')
+                raise Exception(
+                    "Database URI is required while first time invoking connection"
+                )
             cls.connection = sqlite3.connect(database_uri)
             cls.cursor = cls.connection.cursor()
             atexit.register(lambda: cls.close_db_connection)

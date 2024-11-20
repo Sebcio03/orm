@@ -1,10 +1,14 @@
-from dataclasses import dataclass
+import logging
 from abc import ABCMeta
-from typing import TypeVar
+from dataclasses import dataclass
+from typing import Type, TypeVar
 
 from ormtest.db import Connection
+from ormtest.query import generate_create_table_stmt
 
+logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
+
 
 class Column:
     where: str | None = None
@@ -13,17 +17,17 @@ class Column:
         self.name = name
 
     def eq(self, other):
-        self.where = f'{self.name} = {other}'
+        self.where = f"{self.name} = {other}"
         return self
 
     def __str__(self):
         return self.name
 
 
-class TableMeta(type):
-    def __getattr__(cls, name):
-        if cls.__annotations__.get(name):
-           return Column(name)
+class TableMeta(type, ABCMeta):
+    def __getattr__(self, name):
+        if self.__annotations__.get(name):
+            return Column(name)
         return super(type).__getattribute__(name)
 
     def __iter__(self):
@@ -48,10 +52,11 @@ class TableMeta(type):
         raise StopIteration
 
     def __str__(self):
-        columns = ''
+        columns = ""
         for column in self.__annotations__.keys():
-            columns = columns + f'{column}={getattr(self, column)},'
-        return f'{self.__name__}({columns[:-1]})'
+            columns = columns + f"{column}={getattr(self, column)},"
+        return f"{self.__name__}({columns[:-1]})"
+
 
 @dataclass
 class Table(metaclass=TableMeta):
@@ -78,7 +83,6 @@ class Table(metaclass=TableMeta):
             cls._where.append(column.where)
 
         return cls
-
 
     @classmethod
     def limit(cls: _T, limit: int) -> _T:
