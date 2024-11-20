@@ -25,5 +25,6 @@ class Connection:
 
     @classmethod
     def execute(cls: Self, stmt: str) -> None:
+        print(stmt)
         cls.cursor.execute(stmt)
         cls.connection.commit()

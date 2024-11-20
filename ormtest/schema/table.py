@@ -1,13 +1,32 @@
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, Union
 
 from ormtest.db import Connection
 
 logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
+class OR(list):
+    def __str__(self):
+        left, right = self[0], self[1]
+        if left is OR:
+            left = str(left)
+        elif isinstance(left, Column):
+            left = left.where
+
+        if right is OR:
+            right = str(right)
+        elif isinstance(right, tuple):
+            right = f"({right[0].where} AND {right[1].where})"
+        elif isinstance(right, Column):
+            right = right.where
+
+        return f"{left} OR {right}"
+
+    def __or__(self, other):
+        return OR([self, other])
 
 class Column:
     where: str | None = None
@@ -15,12 +34,42 @@ class Column:
     def __init__(self, name: str):
         self.name = name
 
+    def __str__(self):
+        return self.name
+
+    def __or__(self, other):
+        return OR([self, other])
+
     def eq(self, other):
+        if isinstance(other, str):
+            other = f"'{other}'"
         self.where = f"{self.name} = {other}"
         return self
 
-    def __str__(self):
-        return self.name
+    def gt(self, other):
+        if isinstance(other, str):
+            other = f"'{other}'"
+        self.where = f"{self.name} > {other}"
+        return self
+
+    def gte(self, other):
+        if isinstance(other, str):
+            other = f"'{other}'"
+        self.where = f"{self.name} >= {other}"
+        return self
+
+    def lt(self, other):
+        if isinstance(other, str):
+            other = f"'{other}'"
+        self.where = f"{self.name} < {other}"
+        return self
+
+    def lte(self, other):
+        if isinstance(other, str):
+            other = f"'{other}'"
+        self.where = f"{self.name} <= {other}"
+        return self
+
 
 
 class TableMeta(ABCMeta):
@@ -77,9 +126,14 @@ class Table(metaclass=TableMeta):
     def where(cls: _T, *filters: tuple[Column]) -> _T:
         cls._where = []
         for column in filters:
-            if str(column) not in cls.__annotations__.keys():
-                raise TypeError(f"{column} doesn't exist on {cls.__name__}")
-            cls._where.append(column.where)
+            if isinstance(
+                column, OR
+            ):
+                cls._where.append(str(column))
+            else:
+                if str(column) not in cls.__annotations__.keys():
+                    raise TypeError(f"{column} doesn't exist on {cls.__name__}")
+                cls._where.append(column.where)
 
         return cls
 
