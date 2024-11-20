@@ -13,4 +13,3 @@ def create_tables(connection: Connection, tables: list[Type[Table]]):
         stmt = generate_create_table_stmt(table)
         connection.execute(stmt)
         logger.info(f"CREATED {table}")
-    connection.connection.commit()

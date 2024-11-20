@@ -1,10 +1,9 @@
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from typing import Type, TypeVar
+from typing import TypeVar
 
 from ormtest.db import Connection
-from ormtest.query import generate_create_table_stmt
 
 logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
@@ -24,7 +23,7 @@ class Column:
         return self.name
 
 
-class TableMeta(type, ABCMeta):
+class TableMeta(ABCMeta):
     def __getattr__(self, name):
         if self.__annotations__.get(name):
             return Column(name)
@@ -34,8 +33,8 @@ class TableMeta(type, ABCMeta):
         from ormtest.query.builder import generate_select_stmt
 
         stmt = generate_select_stmt(self)
-        cursor = Connection().execute(stmt)
-        self.__results = cursor.fetchall()
+        Connection.execute(stmt)
+        self.__results = Connection.cursor.fetchall()
         self.i = len(self.__results)
         return self
 
@@ -46,8 +45,8 @@ class TableMeta(type, ABCMeta):
 
     def __next__(self):
         if self.i > 0:
-            r = self.__results[self.i - 1]
             self.i -= 1
+            r = self.__results[self.i]
             return self.from_row(r)
         raise StopIteration
 
@@ -68,7 +67,7 @@ class Table(metaclass=TableMeta):
     def select(cls: _T, *args) -> _T:
         cls._select = []
         for column in args:
-            if column.name not in cls.__annotations__.keys():
+            if str(column) not in cls.__annotations__.keys():
                 raise TypeError(f"{column} doesn't exist on {cls.__name__}")
             cls._select.append(column)
 
@@ -78,7 +77,7 @@ class Table(metaclass=TableMeta):
     def where(cls: _T, *filters: tuple[Column]) -> _T:
         cls._where = []
         for column in filters:
-            if column.name not in cls.__annotations__.keys():
+            if str(column) not in cls.__annotations__.keys():
                 raise TypeError(f"{column} doesn't exist on {cls.__name__}")
             cls._where.append(column.where)
 
@@ -94,7 +93,7 @@ class Table(metaclass=TableMeta):
         from ormtest.query.builder import generate_insert_row_stmt
 
         for column, value in kwargs.items():
-            if column.name not in cls.__annotations__.keys():
+            if str(column) not in cls.__annotations__.keys():
                 raise TypeError(f"{column} doesn't exist on {cls.__name__}")
             setattr(cls, column, value)
 

@@ -13,13 +13,14 @@ class User(Table):
 
 
 # python ormtest/cmd.py create_tables
+# ^^^ Run before continuing without code below
 
-for i in range(10):
-    User.create(
-        id=i,
-        name=f"<NAME{i}>",
-        password=f"<PASSWORD{i}>",
-    )
+# for i in range(10):
+#     User.create(
+#         id=i,
+#         name=f"<NAME{i}>",
+#         password=f"<PASSWORD{i}>",
+#     )
 
 
 for i in User.select(User.id, User.name).where(User.id.eq(1)).limit(5):

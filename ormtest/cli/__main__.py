@@ -5,7 +5,7 @@ from inspect import isclass
 from pathlib import Path
 from typing import Type
 
-from ormtest.cli import create_tables
+from ormtest.cli.create_tables import create_tables
 from ormtest.db import Connection
 from ormtest.schema import Table
 

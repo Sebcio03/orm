@@ -39,6 +39,9 @@ def generate_create_table_stmt(table: Type[Table]) -> str:
     columns = ""
 
     for column_name, type in get_type_hints(table).items():
+        if column_name.startswith("_"):
+            continue
+        print(table, column_name, type)
         data_type, constraints = python_type2sql(type)
         columns += f"{column_name} {data_type} {constraints},"
 
